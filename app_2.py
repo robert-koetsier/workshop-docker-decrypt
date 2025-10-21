@@ -89,7 +89,7 @@ def index():
             write_message(result, "/app/results/message.txt")
         except Exception as e:
             result = f"Error: {e}"
-    return render_template_string(HTML, result=result)
+    return render_template_string(HTML, result="Your message has been written to a file")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
