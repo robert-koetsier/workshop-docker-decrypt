@@ -1,5 +1,8 @@
 from flask import Flask, request, render_template_string
 
+from secretpy import Caesar, CryptMachine
+cipher = Caesar()
+
 app = Flask(__name__)
 
 HTML = """
@@ -18,12 +21,12 @@ HTML = """
       height: 100vh;
     }
     .container {
-      background: white;
+      background: red;
       padding: 2rem;
       border-radius: 1rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       text-align: center;
-      width: 300px;
+      width: 800px;
     }
     input[type="text"] {
       width: 100%;
@@ -59,7 +62,8 @@ HTML = """
   <div class="container">
     <h2>Enter text</h2>
     <form method="post">
-      <input type="text" name="text" placeholder="Type something..." autofocus>
+      <input type="text" name="text" placeholder="Enter a encoded message" autofocus>
+      <input type="number" name="key" placeholder="Enter a key">
       <input type="submit" value="Process">
     </form>
     {% if result %}
@@ -76,8 +80,14 @@ def index():
     result = None
     if request.method == "POST":
         text = request.form.get("text", "")
-        result = "-- " + text + " --"
+        key = request.form.get("key", "")
+
+        result = decoder(text, key)
     return render_template_string(HTML, result=result)
+
+def decoder(enctext, key):
+    cm = CryptMachine(cipher, int(key))
+    return cm.decrypt(enctext)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
