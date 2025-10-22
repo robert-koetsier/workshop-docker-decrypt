@@ -71,13 +71,15 @@ HTML = """
 </html>
 """
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
     if request.method == "POST":
         text = request.form.get("text", "")
-        result = "-- " + text + " --"
+        result = "-- " + text.upper() + " --"
     return render_template_string(HTML, result=result)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
