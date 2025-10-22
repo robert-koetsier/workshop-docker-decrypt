@@ -8,7 +8,7 @@ Clone the directory and run this to start the app:
 
 ```
 docker build -t loud-text .
-docker run -p 5001:5000 loud-text
+docker run -d -p 127.0.0.1:5001:5000 loud-text
 ```
 
 Then you should be able to find the app on: http://localhost:5001/
