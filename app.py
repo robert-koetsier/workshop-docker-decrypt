@@ -77,7 +77,7 @@ def index():
     result = None
     if request.method == "POST":
         text = request.form.get("text", "")
-        result = "-- " + text.upper() + " --"
+        result = text.upper() + "!!!"
     return render_template_string(HTML, result=result)
 
 
