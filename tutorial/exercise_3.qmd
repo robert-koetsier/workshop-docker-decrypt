@@ -1,0 +1,349 @@
+---
+title: "Decryption app"
+author: "BIF buddy group 7"
+format: html
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
+toc: true
+toc-depth: 3
+---
+
+```{r setup, include=FALSE}
+# For configuring options
+```
+
+# Update the application
+
+In [part 1](02_our_app.qmd), you containerized a todo application. In this part, you'll update the application and image. You'll also learn how to stop and remove a container.
+
+## Update the source code
+
+In the following steps, you'll change the "empty text" when you don't have any todo list items to "You have no todo items yet! Add one above!".
+
+1. In the `src/static/js/app.js` file, update line 56 to use the new empty text.
+
+```diff
+- <p className="text-center">No items yet! Add one above!</p>
++ <p className="text-center">You have no todo items yet! Add one above!</p>
+```
+
+2. Build your updated version of the image, using the `docker build` command.
+
+```{bash}
+docker build -t getting-started .
+```
+
+3. Start a new container using the updated code.
+
+```{bash}
+docker run -dp 127.0.0.1:3000:3000 getting-started
+```
+
+You probably saw an error like this:
+
+```{console}
+docker: Error response from daemon: driver failed programming external connectivity on endpoint laughing_burnell 
+(bb242b2ca4d67eba76e79474fb36bb5125708ebdabd7f45c8eaf16caaabde9dd): Bind for 127.0.0.1:3000 failed: port is already allocated.
+```
+
+The error occurred because you aren't able to start the new container while your old container is still running. The reason is that the old container is already using the host's port 3000 and only one process on the machine (containers included) can listen to a specific port. To fix this, you need to remove the old container.
+
+## Remove the old container
+
+To remove a container, you first need to stop it. Once it has stopped, you can remove it. You can remove the old container using the CLI or Docker Desktop's graphical interface. Choose the option that you're most comfortable with.
+
+::: {.panel-tabset}
+
+### CLI
+
+#### Remove a container using the CLI
+
+1. Get the ID of the container by using the `docker ps` command.
+
+```{bash}
+docker ps
+```
+
+2. Use the `docker stop` command to stop the container. Replace `<the-container-id>` with the ID from `docker ps`.
+
+```{bash}
+docker stop <the-container-id>
+```
+
+3. Once the container has stopped, you can remove it by using the `docker rm` command.
+
+```{bash}
+docker rm <the-container-id>
+```
+
+> **Note:**  
+> You can stop and remove a container in a single command by adding the `force` flag to the `docker rm` command. For example:  
+> `docker rm -f <the-container-id>`
+
+### Docker Desktop
+
+#### Remove a container using Docker Desktop
+
+1. Open Docker Desktop to the **Containers** view.  
+2. Select the trash can icon under the **Actions** column for the container that you want to delete.  
+3. In the confirmation dialog, select **Delete forever**.
+
+:::
+
+### Start the updated app container
+
+1. Now, start your updated app using the `docker run` command.
+
+```{bash}
+docker run -dp 127.0.0.1:3000:3000 getting-started
+```
+
+2. Refresh your browser on [http://localhost:3000](http://localhost:3000) and you should see your updated help text.
+
+## Summary
+
+In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.
+
+Related information:
+- [docker CLI reference](../reference/cli/docker.qmd)
+
+# Use bind mounts
+
+In [part 4](05_persisting_data.qmd), you used a volume mount to persist the
+data in your database. A volume mount is a great choice when you need somewhere
+persistent to store your application data.
+
+A bind mount is another type of mount, which lets you share a directory from the
+host's filesystem into the container. When working on an application, you can
+use a bind mount to mount source code into the container. The container sees the
+changes you make to the code immediately, as soon as you save a file. This means
+that you can run processes in the container that watch for filesystem changes
+and respond to them.
+
+In this chapter, you'll see how you can use bind mounts and a tool called
+[nodemon](https://npmjs.com/package/nodemon) to watch for file changes, and then restart the application
+automatically. There are equivalent tools in most other languages and
+frameworks.
+
+## Quick volume type comparisons
+
+The following are examples of a named volume and a bind mount using `--mount`:
+
+- Named volume: `type=volume,src=my-volume,target=/usr/local/data`
+- Bind mount: `type=bind,src=/path/to/data,target=/usr/local/data`
+
+| Feature | Named Volumes | Bind Mounts |
+|----------|----------------|-------------|
+| Host location | Docker chooses | You decide |
+| Populates new volume with container contents | Yes | No |
+| Supports Volume Drivers | Yes | No |
+
+## Trying out bind mounts
+
+Before looking at how you can use bind mounts for developing your application,
+you can run a quick experiment to get a practical understanding of how bind mounts
+work.
+
+1. Verify that your `getting-started-app` directory is in a directory defined in
+Docker Desktop's file sharing setting. This setting defines which parts of your
+filesystem you can share with containers. For details about accessing the setting, see [File sharing](../manuals/desktop/settings-and-maintenance/settings.qmd#file-sharing).
+
+> **Note:** The **File sharing** tab is only available in Hyper-V mode, because the files are automatically shared in WSL 2 mode and Windows container mode.
+
+2. Open a terminal and change directory to the `getting-started-app` directory.
+
+3. Run the following command to start `bash` in an `ubuntu` container with a
+bind mount.
+
+::: {.panel-tabset}
+
+### Mac / Linux
+
+```{bash}
+docker run -it --mount type=bind,src="$(pwd)",target=/src ubuntu bash
+```
+
+### Command Prompt
+
+```{bash}
+docker run -it --mount "type=bind,src=%cd%,target=/src" ubuntu bash
+```
+
+### Git Bash
+
+```{bash}
+docker run -it --mount type=bind,src="/$(pwd)",target=/src ubuntu bash
+```
+
+### PowerShell
+
+```{bash}
+docker run -it --mount "type=bind,src=$($pwd),target=/src" ubuntu bash
+```
+
+:::
+
+The `--mount type=bind` option tells Docker to create a bind mount, where `src` is the
+current working directory on your host machine (`getting-started-app`), and
+`target` is where that directory should appear inside the container (`/src`).
+
+4. After running the command, Docker starts an interactive `bash` session in the
+root directory of the container's filesystem.
+
+```{console}
+root@ac1237fad8db:/# pwd
+/
+root@ac1237fad8db:/# ls
+bin   dev  home  media  opt   root  sbin  srv  tmp  var
+boot  etc  lib   mnt    proc  run   src   sys  usr
+```
+
+5. Change directory to the `src` directory. Listing its contents should match
+your `getting-started-app` directory on your host machine.
+
+```{console}
+root@ac1237fad8db:/# cd src
+root@ac1237fad8db:/src# ls
+Dockerfile  node_modules  package.json  spec  src  yarn.lock
+```
+
+6. Create a new file named `myfile.txt`.
+
+```{console}
+root@ac1237fad8db:/src# touch myfile.txt
+root@ac1237fad8db:/src# ls
+Dockerfile  myfile.txt  node_modules  package.json  spec  src  yarn.lock
+```
+
+7. On the host, observe that `myfile.txt` appears in your directory:
+
+```{text}
+├── getting-started-app/
+│ ├── Dockerfile
+│ ├── myfile.txt
+│ ├── node_modules/
+│ ├── package.json
+│ ├── spec/
+│ ├── src/
+│ └── yarn.lock
+```
+
+8. Delete `myfile.txt` from the host, then check the container — it should be gone.
+
+```{console}
+root@ac1237fad8db:/src# ls
+Dockerfile  node_modules  package.json  spec  src  yarn.lock
+```
+
+9. Stop the interactive container session with `Ctrl` + `D`.
+
+This shows how files are shared between the host and container, and how changes
+are reflected instantly.
+
+## Development containers
+
+Bind mounts are great for local development setups. The host machine doesn’t
+need build tools installed — the container provides them.
+
+### Run your app in a development container
+
+We'll run a container with a bind mount that:
+
+- Mounts your source code
+- Installs dependencies
+- Starts `nodemon` to watch for file changes
+
+::: {.panel-tabset}
+
+### Mac / Linux CLI
+
+```{bash}
+docker run -dp 127.0.0.1:3000:3000   -w /app --mount type=bind,src="$(pwd)",target=/app   node:lts-alpine   sh -c "yarn install && yarn run dev"
+```
+
+### PowerShell CLI
+
+```{powershell}
+docker run -dp 127.0.0.1:3000:3000 `
+-w /app --mount "type=bind,src=$pwd,target=/app" `
+node:lts-alpine `
+sh -c "yarn install && yarn run dev"
+```
+
+### Command Prompt CLI
+
+```{bash}
+docker run -dp 127.0.0.1:3000:3000 ^
+-w /app --mount "type=bind,src=%cd%,target=/app" ^
+node:lts-alpine ^
+sh -c "yarn install && yarn run dev"
+```
+
+### Git Bash CLI
+
+```{bash}
+docker run -dp 127.0.0.1:3000:3000   -w //app --mount type=bind,src="/$(pwd)",target=/app   node:lts-alpine   sh -c "yarn install && yarn run dev"
+```
+
+### Docker Desktop
+
+1. Make sure no `getting-started` containers are running.  
+2. Open Docker Desktop → **Images** tab → find `getting-started`.  
+3. Click **Run**, then **Optional settings**.  
+4. Set **Host path** = your `getting-started-app` directory.  
+5. Set **Container path** = `/app`.  
+6. Click **Run**.
+
+You'll know it's ready when the logs show:
+
+```{console}
+nodemon -L src/index.js
+[nodemon] starting `node src/index.js`
+Using sqlite database at /etc/todos/todo.db
+Listening on port 3000
+```
+
+:::
+
+### Develop your app with the development container
+
+Update the app on your host and see the changes reflected instantly.
+
+1. In `src/static/js/app.js`, on line 109, change the "Add Item" button text:
+
+```diff
+- {submitting ? 'Adding...' : 'Add Item'}
++ {submitting ? 'Adding...' : 'Add'}
+```
+
+2. Refresh your browser — the change appears almost immediately.  
+![Updated Add button](images/updated-add-button.webp)
+
+3. When done, stop the container and rebuild your image:
+
+```{bash}
+docker build -t getting-started .
+```
+
+## Summary
+
+You can now persist your database and see code changes in real-time using bind
+mounts. Docker also supports other mount types and storage drivers for advanced
+use cases.
+
+Related information:
+
+- [docker CLI reference](../reference/cli/docker.qmd)
+- [Manage data in Docker](https://docs.docker.com/storage/)
+
+## Next steps
+
+Next, you'll migrate your database from SQLite to MySQL for a production-ready
+setup. You'll also learn how to network multiple containers.
+
+[→ Multi container apps](07_multi_container.qmd)
+
+

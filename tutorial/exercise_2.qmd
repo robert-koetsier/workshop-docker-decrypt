@@ -1,0 +1,198 @@
+---
+title: "Creating docker images"
+author: "BIF buddy group 7"
+format: html
+execute:
+  eval: false
+  echo: true
+  warning: false
+  message: false
+toc: true
+toc-depth: 3
+abstract: |
+    This tutorial is an adaptation of the official Getting Started with Docker 
+    instructions ([link](https://docs.docker.com/get-started/workshop/)). We have 
+    modified the Docker images that you will build to feature a Python (Flask) app 
+    that processes your input messages, either by capitalizing your input text or 
+    decrypting your message. While working with these Docker images, you will learn 
+    several fundamental skills required to master Docker: building your own image, 
+    running a container based on this image, mapping ports to access a web app 
+    hosted in a Docker container, sharing files between your local and Docker 
+    environments (mounting directories), and accessing the shell of your Docker 
+    containers (e.g., for troubleshooting).
+---
+
+```{r setup, include=FALSE}
+# For configuring options
+```
+
+
+# Containerize an application
+
+In the first part of this tutorial, you will be working with a Python (Flask) app
+that capitalized your input message. Your interaction with the source code of this
+app will be minimal, as we focus on the docker aspects.
+
+## Prerequisites
+
+- You have installed the latest version of [Docker Desktop](https://docs.docker.com/get-started/get-docker/).
+- You have installed a [Git client](https://git-scm.com/downloads).
+- You have an IDE or a text editor to edit files. Docker recommends using [Visual Studio Code](https://code.visualstudio.com/).
+
+## Get the app
+
+Before you can run the application, you need to get the application source code 
+onto your machine.
+
+1. Clone the [Workshop Git directory](https://github.com/robert-koetsier/workshop-docker-decrypt/tree/main) using the following command:
+
+   ```{bash}
+   git clone https://github.com/robert-koetsier/workshop-docker-decrypt.git
+   ```
+
+2. View the contents of the cloned repository. You should see the following files and sub-directories.
+
+   ```{text}
+      `-- workshop-docker-decrypt
+           |-- Dockerfile
+           |-- README.md
+           |-- app.py
+           |-- app_2.py
+           `-- requirements.txt
+   ```
+
+## Build the app's image
+
+To build the image, you'll need to use a Dockerfile. A Dockerfile is a text-based 
+file (with no file extension) that contains a set of instructions Docker uses to 
+build a container image.
+
+1. In the workshop-docker-decrypt directory — the same location as the `app.py` and 
+`requirements.txt` files — create a file named `Dockerfile` with the following 
+contents:
+
+   ```{Dockerfile}
+   FROM python:3.12-slim
+   
+   # Set the working directory inside the container
+   WORKDIR /app
+   
+   # Copy dependency file and install dependencies inside the container
+   COPY requirements.txt .
+   RUN pip install --no-cache-dir -r requirements.txt
+   
+   # Copy the application code
+   COPY app.py .
+   
+   # Expose the port the app runs on
+   EXPOSE 5000
+   
+   # Command that is automatically executed when a container is created
+   CMD ["python", "app.py"]
+   ```
+   
+   This Dockerfile starts from the official python:3.12-slim base image — a 
+   lightweight Linux image that comes with Python preinstalled. It copies the 
+   application code into the image, installs the required dependencies, and 
+   specifies how to start the app.
+
+2. Build the image using the following commands:
+   
+   In the terminal, make sure you’re in the `workshop-docker-decrypt` directory. 
+   Replace `/path/to/workshop-docker-decrypt` with the path to your cloned repository.
+   
+   ```{bash}
+   cd /path/to/workshop-docker-decrypt
+   ```
+   
+   Now build the image:
+   
+   ```{bash}
+   docker build -t loud-text .
+   ```
+   
+   The `docker build` command uses the Dockerfile in the current directory to build 
+   a new image.You might notice that Docker downloads several “layers” — these come 
+   from the base image specified in your Dockerfile (`python:3.12-slim`). If it’s not 
+   already on your machine, Docker will fetch it first.
+   
+   After pulling the base image, Docker executes each instruction in your Dockerfile: 
+   it copies your application files, installs dependencies from `requirements.txt`, 
+   and defines how to start the app with `CMD ["python", "app.py"]`.
+   
+   Finally, the `-t` flag tags your image — giving it the human-readable name 
+   `loud-text`. The `.` at the end of the command tells Docker to use the current 
+   directory as the build context, where it will look for the Dockerfile and all 
+   necessary files.
+   
+## Start an app container
+
+Now that you have an image, you can run the application in a container using the 
+`docker run` command.
+
+1. Run your container using the `docker run` command and specify the name of the 
+image you just created:
+   
+   ```{bash}
+   docker run -d -p 127.0.0.1:5001:5000 loud-text
+   ```
+   
+   The `-d` flag (short for `--detach`) runs the container in the background.
+   This means that Docker starts your container and returns you to the terminal
+   prompt. Also, it does not display logs in the terminal.
+   
+   The `-p` flag (short for `--publish`) creates a port mapping between the
+   host and the container. The `-p` flag takes a string value in the format of
+   `HOST:CONTAINER`, where `HOST` is the address on the host, and `CONTAINER`
+   is the port on the container. The command publishes the container's port
+   5000 to `127.0.0.1:5001` (`localhost:5001`) on the host. Without the port
+   mapping, you wouldn't be able to access the application from the host.
+   
+2. After a few seconds, open your web browser to [http://localhost:5001](http://localhost:5001).
+You should see your app.
+
+   ![UI of the loud-text app.](images/app1.png)
+
+3. Type something you would like to share with the world and then hit "Process" 
+to check how loud the app really is.
+
+At this point, you have functional python web app running inside your docker 
+container. Note that for public web apps hosted through docker there are several
+good practices for security of the app, which we won't cover here. 
+
+If you take a quick look at your containers, you should see at least one container running that's using the `loud-text` image and on port `5001`. To see your containers, you can use the CLI or Docker Desktop's graphical interface.
+
+::: {.panel-tabset}
+
+### CLI
+
+Run the `docker ps` command in a terminal to list your containers.
+
+```{bash}
+docker ps
+```
+
+Output similar to the following should appear.
+
+```{console}
+CONTAINER ID   IMAGE       COMMAND           CREATED         STATUS         PORTS                      NAMES
+248d3a200f16   loud-text   "python app.py"   7 minutes ago   Up 7 minutes   127.0.0.1:5001->5000/tcp   quizzical_pike
+```
+
+### Docker Desktop
+
+In Docker Desktop, select the **Containers** tab to see a list of your containers.
+
+![Docker Desktop with loud-text container running](images/docker_ui.png)
+
+:::
+
+## Summary
+
+In this section, you learned the basics about creating a Dockerfile to build an 
+image. Once you built an image, you started a container and saw the running app.
+
+## Next steps
+
+Next, you're going to make a modification to your app and learn how to update 
+your running application with a new image. Along the way, you'll learn a few other useful commands.
