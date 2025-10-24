@@ -54,7 +54,8 @@ onto your machine.
 
    ```{text}
       `-- workshop-docker-decrypt
-           |-- Dockerfile
+           |-- tutorial/
+                |--...
            |-- README.md
            |-- app.py
            |-- app_2.py
@@ -68,7 +69,7 @@ file (with no file extension) that contains a set of instructions Docker uses to
 build a container image.
 
 1. In the workshop-docker-decrypt directory — the same location as the `app.py` and 
-`requirements.txt` files — create a file named `Dockerfile` with the following 
+`requirements.txt` files — create a file named `Dockerfile` (no extension) with the following 
 contents:
 
    ```{Dockerfile}
@@ -114,11 +115,11 @@ contents:
    The `docker build` command uses the Dockerfile in the current directory to build 
    a new image.You might notice that Docker downloads several “layers” — these come 
    from the base image specified in your Dockerfile (`python:3.12-slim`). If it’s not 
-   already on your machine, Docker will fetch it first.
+   already on your machine, Docker will fetch it first. This may take some time.
    
    After pulling the base image, Docker executes each instruction in your Dockerfile: 
    it copies your application files, installs dependencies from `requirements.txt`, 
-   and defines how to start the app with `CMD ["python", "app.py"]`.
+   and defines how to start the app with `CMD ["python", "app.py"]` (your 'entrypoint').
    
    Finally, the `-t` flag tags your image — giving it the human-readable name 
    `loud-text`. The `.` at the end of the command tells Docker to use the current 
@@ -134,7 +135,7 @@ Now that you have an image, you can run the application in a container using the
 image you just created:
    
    ```{bash}
-   docker run -d -p 127.0.0.1:5001:5000 loud-text
+   docker run -d -p 5001:5000 loud-text
    ```
    
    The `-d` flag (short for `--detach`) runs the container in the background.
@@ -198,25 +199,25 @@ In [part 1](02_our_app.qmd), you containerized a todo application. In this part,
 
 ## Update the source code
 
-In the following steps, you'll change the "empty text" when you don't have any todo list items to "You have no todo items yet! Add one above!".
+In the following steps, you'll change the "placeholder" when you haven't typed anything into the application yet to "Yell something...".
 
-1. In the `src/static/js/app.js` file, update line 56 to use the new empty text.
+1. In the `app.py` file, update line 62 to use the new empty text.
 
 ```diff
-- <p className="text-center">No items yet! Add one above!</p>
-+ <p className="text-center">You have no todo items yet! Add one above!</p>
+-       <input type="text" name="text" placeholder="Type something..." autofocus>
++       <input type="text" name="text" placeholder="Yell something..." autofocus>
 ```
 
 2. Build your updated version of the image, using the `docker build` command.
 
 ```{bash}
-docker build -t getting-started .
+docker build -t loud-text .
 ```
 
 3. Start a new container using the updated code.
 
 ```{bash}
-docker run -dp 127.0.0.1:5001:5000 getting-started
+docker run -dp 127.0.0.1:5001:5000 loud-text
 ```
 
 You probably saw an error like this:
@@ -275,10 +276,10 @@ docker rm <the-container-id>
 1. Now, start your updated app using the `docker run` command.
 
 ```{bash}
-docker run -dp 127.0.0.1:5001:5000 getting-started
+docker run -dp 127.0.0.1:5001:5000 loud-text
 ```
 
-2. Refresh your browser on [http://localhost:5000](http://localhost:5000) and you should see your updated help text.
+2. Refresh your browser on [http://localhost:5001](http://localhost:5001) and you should see your updated placeholder text.
 
 ## Summary
 
