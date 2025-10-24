@@ -80,16 +80,21 @@ def write_message(message, out_file):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
+    post_message = ""
     if request.method == "POST":
         text = request.form.get("text", "")
         cipher = Keyword()
-        try:
-            result = cipher.decrypt(text, KEY)
-            write_message(result, "/app/results/message.txt")
-        except Exception as e:
-            result = f"Error: {e}"
-    return render_template_string(HTML, result="Your message has been written to a file")
+        if text:
+            try:
+                result = cipher.decrypt(text, KEY)
+                write_message(result, "/app/results/message.txt")
+                post_message = "Your message has been written to a file"
+            except Exception:
+                write_message("no key found", "/app/results/message.txt")
+                post_message = "No key found."
+        else:
+            post_message = ""
+    return render_template_string(HTML, result=post_message)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
