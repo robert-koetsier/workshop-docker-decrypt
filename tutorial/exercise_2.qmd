@@ -278,7 +278,7 @@ docker rm <the-container-id>
 docker run -dp 127.0.0.1:5001:5000 getting-started
 ```
 
-2. Refresh your browser on [http://localhost:3000](http://localhost:3000) and you should see your updated help text.
+2. Refresh your browser on [http://localhost:5000](http://localhost:5000) and you should see your updated help text.
 
 ## Summary
 
