@@ -54,7 +54,8 @@ onto your machine.
 
    ```{text}
       `-- workshop-docker-decrypt
-           |-- Dockerfile
+           |-- tutorial/
+                |--...
            |-- README.md
            |-- app.py
            |-- app_2.py
@@ -68,7 +69,7 @@ file (with no file extension) that contains a set of instructions Docker uses to
 build a container image.
 
 1. In the workshop-docker-decrypt directory — the same location as the `app.py` and 
-`requirements.txt` files — create a file named `Dockerfile` with the following 
+`requirements.txt` files — create a file named `Dockerfile` (no extension) with the following 
 contents:
 
    ```{Dockerfile}
@@ -114,11 +115,11 @@ contents:
    The `docker build` command uses the Dockerfile in the current directory to build 
    a new image.You might notice that Docker downloads several “layers” — these come 
    from the base image specified in your Dockerfile (`python:3.12-slim`). If it’s not 
-   already on your machine, Docker will fetch it first.
+   already on your machine, Docker will fetch it first. This may take some time.
    
    After pulling the base image, Docker executes each instruction in your Dockerfile: 
    it copies your application files, installs dependencies from `requirements.txt`, 
-   and defines how to start the app with `CMD ["python", "app.py"]`.
+   and defines how to start the app with `CMD ["python", "app.py"]` (your 'entrypoint').
    
    Finally, the `-t` flag tags your image — giving it the human-readable name 
    `loud-text`. The `.` at the end of the command tells Docker to use the current 
@@ -134,7 +135,7 @@ Now that you have an image, you can run the application in a container using the
 image you just created:
    
    ```{bash}
-   docker run -d -p 127.0.0.1:5001:5000 loud-text
+   docker run -d -p 5001:5000 loud-text
    ```
    
    The `-d` flag (short for `--detach`) runs the container in the background.
@@ -192,7 +193,101 @@ In Docker Desktop, select the **Containers** tab to see a list of your container
 In this section, you learned the basics about creating a Dockerfile to build an 
 image. Once you built an image, you started a container and saw the running app.
 
+# Update the application
+
+In [part 1](02_our_app.qmd), you containerized a todo application. In this part, you'll update the application and image. You'll also learn how to stop and remove a container.
+
+## Update the source code
+
+In the following steps, you'll change the "placeholder" when you haven't typed anything into the application yet to "Yell something...".
+
+1. In the `app.py` file, update line 62 to use the new empty text.
+
+```diff
+-       <input type="text" name="text" placeholder="Type something..." autofocus>
++       <input type="text" name="text" placeholder="Yell something..." autofocus>
+```
+
+2. Build your updated version of the image, using the `docker build` command.
+
+```{bash}
+docker build -t loud-text .
+```
+
+3. Start a new container using the updated code.
+
+```{bash}
+docker run -dp 127.0.0.1:5001:5000 loud-text
+```
+
+You probably saw an error like this:
+
+```{console}
+docker: Error response from daemon: driver failed programming external connectivity on endpoint laughing_burnell 
+(bb242b2ca4d67eba76e79474fb36bb5125708ebdabd7f45c8eaf16caaabde9dd): Bind for 127.0.0.1:5000 failed: port is already allocated.
+```
+
+The error occurred because you aren't able to start the new container while your old container is still running. The reason is that the old container is already using the host's port 3000 and only one process on the machine (containers included) can listen to a specific port. To fix this, you need to remove the old container.
+
+## Remove the old container
+
+To remove a container, you first need to stop it. Once it has stopped, you can remove it. You can remove the old container using the CLI or Docker Desktop's graphical interface. Choose the option that you're most comfortable with.
+
+::: {.panel-tabset}
+
+### CLI
+
+#### Remove a container using the CLI
+
+1. Get the ID of the container by using the `docker ps` command.
+
+```{bash}
+docker ps
+```
+
+2. Use the `docker stop` command to stop the container. Replace `<the-container-id>` with the ID from `docker ps`.
+
+```{bash}
+docker stop <the-container-id>
+```
+
+3. Once the container has stopped, you can remove it by using the `docker rm` command.
+
+```{bash}
+docker rm <the-container-id>
+```
+
+> **Note:**  
+> You can stop and remove a container in a single command by adding the `force` flag to the `docker rm` command. For example:  
+> `docker rm -f <the-container-id>`
+
+### Docker Desktop
+
+#### Remove a container using Docker Desktop
+
+1. Open Docker Desktop to the **Containers** view.  
+2. Select the trash can icon under the **Actions** column for the container that you want to delete.  
+3. In the confirmation dialog, select **Delete forever**.
+
+:::
+
+### Start the updated app container
+
+1. Now, start your updated app using the `docker run` command.
+
+```{bash}
+docker run -dp 127.0.0.1:5001:5000 loud-text
+```
+
+2. Refresh your browser on [http://localhost:5001](http://localhost:5001) and you should see your updated placeholder text.
+
+## Summary
+
+In this section, you learned how to update and rebuild an image, as well as how to stop and remove a container.
+
+Related information:
+- [docker CLI reference](../reference/cli/docker.qmd)
+
 ## Next steps
 
-Next, you're going to make a modification to your app and learn how to update 
-your running application with a new image. Along the way, you'll learn a few other useful commands.
+Next, you're going to learn how to mount your local directory to the docker container and how to set environment variables. By using these features, you will decode an encrypted message.
